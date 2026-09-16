@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}발권 관리{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+<main class="admin {% block main_class %}{% endblock %}">
+  {% if admin_user %}
+  <header class="admin-head">
+    <h1><a href="{{ url_for('admin.index') }}">발권 관리</a></h1>
+    <nav>
+      <a href="{{ url_for('admin.index', view='tickets') }}" {% if view == 'tickets' %}aria-current="page"{% endif %}>발권 기록</a>
+      <a href="{{ url_for('admin.index', view='members') }}" {% if view == 'members' %}aria-current="page"{% endif %}>회원</a>
+      <a href="{{ url_for('index') }}">발권 화면</a>
+      <a href="{{ url_for('admin.password') }}">비밀번호 변경</a>
+      <form method="post" action="{{ url_for('admin.logout') }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="link">로그아웃 ({{ admin_user }})</button>
+      </form>
+    </nav>
+  </header>
+  {% if default_password %}
+  <p class="notice warn">초기 비밀번호(admin)를 사용 중입니다. 변경하기 전에는 이 PC에서만 관리 페이지를 열 수 있습니다. <a href="{{ url_for('admin.password') }}">지금 변경</a></p>
+  {% endif %}
+  {% endif %}
+
+  {% for kind, msg in get_flashed_messages(with_categories=true) %}
+  <p class="notice {{ kind }}" role="status">{{ msg }}</p>
+  {% endfor %}
+
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

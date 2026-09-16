@@ -1,0 +1,51 @@
+{% extends "admin_base.html" %}
+{% block title %}발권 기록 수정{% endblock %}
+{% block content %}
+<form method="post" class="card-form wide">
+  <h2>발권 기록 수정</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <dl class="readonly">
+    <div><dt>발권번호</dt><dd class="mono">{{ t.ticket_id }}</dd></div>
+    <div><dt>출력일시</dt><dd>{{ t.printed_at }}</dd></div>
+    <div><dt>입장 유형</dt><dd>{{ entry_types[t.entry_type] }}</dd></div>
+    <div><dt>발권 유형</dt><dd>{{ '대기발권' if t.issue_type == 'waiting' else '정상발권' }}</dd></div>
+  </dl>
+
+  <div class="grid">
+    <label>시설
+      <select name="facility">
+        {% for f in facilities %}<option {% if f == t.facility %}selected{% endif %}>{{ f }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>성별
+      <select name="gender">
+        {% for g in genders %}<option {% if g == t.gender %}selected{% endif %}>{{ g }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>상태
+      <select name="status">
+        {% for k, v in statuses.items() %}<option value="{{ k }}" {% if k == t.status %}selected{% endif %}>{{ v }} ({{ k }})</option>{% endfor %}
+      </select>
+    </label>
+    <label>락카번호<input type="number" name="locker" min="0" value="{{ t.locker if t.locker is not none else '' }}"></label>
+    <label>대기번호<input type="number" name="waiting_no" min="0" value="{{ t.waiting_no if t.waiting_no is not none else '' }}"></label>
+    {% if t.entry_type == 'member' %}
+    <label>회원번호<input name="member_id" value="{{ t.member_id or '' }}" required></label>
+    {% else %}
+    <label>이용료(원)<input type="number" name="fee" min="0" step="100" value="{{ t.fee if t.fee is not none else '' }}" required></label>
+    {% endif %}
+  </div>
+  <p class="hint">대기자를 입장시킬 때는 상태를 <b>정상</b>으로 바꾸고 락카번호를 입력하세요. 회원 이름·이용기간은 회원 탭에서 수정합니다.</p>
+
+  <div class="form-actions">
+    <a class="plain" href="{{ back }}">취소</a>
+    <button type="submit">저장</button>
+  </div>
+</form>
+
+<form method="post" action="{{ url_for('admin.delete_ticket', ticket_id=t.ticket_id, next=back) }}" class="danger-zone"
+      data-confirm="{{ t.ticket_id }} 기록을 삭제할까요? 되돌릴 수 없습니다." onsubmit="return confirm(this.dataset.confirm)">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit" class="danger">이 발권 기록 삭제</button>
+</form>
+{% endblock %}

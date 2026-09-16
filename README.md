@@ -10,17 +10,18 @@ SRP-350III 기반 웹 영수증 발권 및 출력 시스템.
 
 ```
 app.py            Flask 서버 (입력 검사, 발권, 미리보기, 발권 조회 API)
+admin.py          관리 페이지 (로그인, 발권·회원 조회/수정/삭제, 비밀번호 변경)
 receipt.py        입력값 -> 영수증 이미지 (양식 레이아웃, 한글 폰트)
 printer.py        ESC/POS 래스터 전송 + 자동 절단 (Linux CUPS / Windows RAW)
 database.py       SQLite: members, tickets / 발권번호·대기번호 발급
 qr.py             QR 코드 생성
 templates/index.html, static/style.css, static/script.js   발권 화면
-templates/admin.html, static/admin.css   관리 페이지 (DB 조회, 읽기 전용)
+templates/admin*.html, static/admin.css   관리 페이지 화면
 tools/print_samples.py   양식의 예시 6장 출력
 docs/             계획서, 출력 양식
 ```
 
-`receipt.db`는 첫 실행 때 자동 생성된다(git 제외).
+`receipt.db`(DB)와 `instance/secret_key`(로그인 세션 서명 키)는 첫 실행 때 자동 생성된다(git 제외).
 
 ## 설치
 
@@ -55,19 +56,25 @@ python3 -m pip --python .venv/bin/python install -r requirements.txt
 | `TICKET_DRY_RUN` | – | `1`이면 인쇄하지 않고 `output/`에 PNG 저장 |
 | `TICKET_DB` | `./receipt.db` | SQLite 파일 경로 |
 | `TICKET_HOST` / `TICKET_PORT` | `127.0.0.1` / `5000` | 내부망 태블릿에서 접속하려면 `TICKET_HOST=0.0.0.0` |
-| `TICKET_ADMIN_PASSWORD` | – | 설정하면 관리 페이지에 비밀번호 인증(아이디는 아무 값)을 요구하고, 다른 기기에서도 접속을 허용 |
+| `TICKET_SECRET_KEY` | `instance/secret_key` | 로그인 세션 서명 키 |
 | `TICKET_FONT_REGULAR` / `TICKET_FONT_BOLD` | – | 한글 폰트 파일 경로 지정 |
 
 양식 예시 출력: `.venv/bin/python tools/print_samples.py` (`--preview`를 붙이면 `output/samples_preview.png`만 생성)
 
 ## 관리 페이지
 
-http://127.0.0.1:5000/admin 에서 DB를 조회한다. 읽기 전용이다.
+http://127.0.0.1:5000/admin 에 접속하면 로그인 화면이 나온다. **초기 계정은 `admin` / `admin`**이다.
 
-- **발권 기록:** 날짜·시설·상태로 필터하고, 발권번호·회원번호·이름으로 검색한다. 날짜 칸을 비우거나 [전체 기간]을 누르면 모든 날짜를 본다. 최근 500건까지 표시한다.
-- **회원:** 이용기간과 유효·만료 여부, 발권 횟수, 마지막 발권 시각을 보여 준다. 회원번호를 누르면 그 회원의 발권 기록으로 이동한다.
-- **상단 요약:** 선택한 날짜의 발권 수(정상·대기)와 일일 이용료 합계를 보여 준다.
-- **접근 제한:** 회원 실명이 그대로 보이므로, `TICKET_ADMIN_PASSWORD`가 없으면 발권 PC(localhost)에서만 열린다. `/api/tickets/<id>`도 같은 규칙을 따른다.
+- **초기 비밀번호:** 바꾸기 전에는 화면 상단에 경고가 뜨고, 발권 PC(localhost)에서만 접속할 수 있다. [비밀번호 변경]에서 8자 이상으로 바꾸면 내부망의 다른 기기에서도 로그인할 수 있다.
+- **발권 기록:**
+  - 날짜·시설·상태로 필터하고, 발권번호·회원번호·이름으로 검색한다. [전체 기간]을 누르면 모든 날짜를 본다.
+  - [수정]에서 시설·성별·상태·락카번호·대기번호·회원번호·이용료를 바꾸거나 기록을 삭제한다.
+  - 대기자를 입장시킬 때는 상태를 `정상`으로 바꾸고 락카번호를 입력한다.
+- **회원:**
+  - 회원을 등록·수정·삭제한다. 회원번호는 수정할 수 없다.
+  - 발권 기록이 남아 있는 회원은 삭제할 수 없다.
+- **보안:** 비밀번호는 해시로만 저장한다(`admins` 테이블). 모든 수정 요청에는 CSRF 토큰을 확인한다. 로그인에 실패하면 1초씩 늦게 응답한다.
+- **비밀번호 분실:** 서버를 멈추고 `sqlite3 receipt.db "DELETE FROM admins"`를 실행한 뒤 서버를 다시 켜면 `admin`/`admin`으로 초기화된다.
 
 ## API
 
@@ -75,8 +82,8 @@ http://127.0.0.1:5000/admin 에서 DB를 조회한다. 읽기 전용이다.
 |---|---|---|
 | `POST` | `/api/tickets` | 발권: DB 저장 후 인쇄. 인쇄에 실패하면 DB 기록도 롤백 |
 | `POST` | `/api/preview` | 영수증 PNG만 생성 (DB 저장·인쇄 없음) |
-| `GET` | `/api/tickets/<ticket_id>` | QR로 스캔한 발권번호의 상태 조회 (관리자 권한) |
-| `GET` | `/admin` | 관리 페이지 |
+| `GET` | `/api/tickets/<ticket_id>` | QR로 스캔한 발권번호의 상태 조회 (관리자 로그인 필요, 아니면 401) |
+| `GET` | `/admin` | 관리 페이지 (로그인 필요) |
 
 요청 본문(JSON): `entry_type`(member/daily), `facility`(헬스1/헬스2/수영), `gender`(남자/여자), `issue_type`(normal/waiting), `locker`(정상발권), `member_id`·`member_name`·`start_date`·`end_date`(회원), `fee`(일일)
 

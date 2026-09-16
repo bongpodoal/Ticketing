@@ -1,0 +1,13 @@
+{% extends "admin_base.html" %}
+{% block title %}관리자 로그인{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<form method="post" class="card-form">
+  <h1>관리자 로그인</h1>
+  {% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
+  <label>아이디<input name="username" autocomplete="username" required autofocus value="{{ request.form.username }}"></label>
+  <label>비밀번호<input type="password" name="password" autocomplete="current-password" required></label>
+  <button type="submit">로그인</button>
+  <p class="foot"><a href="{{ url_for('index') }}">← 발권 화면으로</a></p>
+</form>
+{% endblock %}

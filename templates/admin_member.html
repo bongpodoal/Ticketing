@@ -1,0 +1,34 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ '회원 등록' if is_new else '회원 수정' }}{% endblock %}
+{% block content %}
+<form method="post" class="card-form">
+  <h2>{{ '회원 등록' if is_new else '회원 수정' }}</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% if is_new %}
+  <label>회원번호<input name="member_id" value="{{ m.member_id }}" inputmode="numeric" required autofocus></label>
+  {% else %}
+  <dl class="readonly">
+    <div><dt>회원번호</dt><dd>{{ m.member_id }}</dd></div>
+    <div><dt>발권 횟수</dt><dd>{{ m.ticket_count }}</dd></div>
+  </dl>
+  {% endif %}
+  <label>회원명<input name="name" value="{{ m.name }}" required></label>
+  <div class="grid two">
+    <label>이용 시작일<input type="date" name="start_date" value="{{ m.start_date }}" required></label>
+    <label>이용 종료일<input type="date" name="end_date" value="{{ m.end_date }}" required></label>
+  </div>
+  <div class="form-actions">
+    <a class="plain" href="{{ url_for('admin.index', view='members') }}">취소</a>
+    <button type="submit">{{ '등록' if is_new else '저장' }}</button>
+  </div>
+</form>
+
+{% if not is_new %}
+<form method="post" action="{{ url_for('admin.delete_member', member_id=m.member_id) }}" class="danger-zone"
+      data-confirm="회원 {{ m.member_id }}를 삭제할까요? 되돌릴 수 없습니다." onsubmit="return confirm(this.dataset.confirm)">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button type="submit" class="danger" {% if m.ticket_count %}disabled title="발권 기록이 남아 있어 삭제할 수 없습니다"{% endif %}>회원 삭제</button>
+  {% if m.ticket_count %}<p class="hint">발권 기록 {{ m.ticket_count }}건이 남아 있어 삭제할 수 없습니다.</p>{% endif %}
+</form>
+{% endif %}
+{% endblock %}
