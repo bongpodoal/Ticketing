@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>체육센터 발권 시스템</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main>
+  <h1>체육센터 발권 시스템</h1>
+
+  <form id="ticket-form" novalidate>
+    <fieldset>
+      <legend>입장 유형</legend>
+      <div class="choices">
+        <label><input type="radio" name="entry_type" value="member" checked><span>회원입장</span></label>
+        <label><input type="radio" name="entry_type" value="daily"><span>일일입장</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>시설</legend>
+      <div class="choices">
+        {% for f in facilities %}
+        <label><input type="radio" name="facility" value="{{ f }}" {% if loop.first %}checked{% endif %}><span>{{ f }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>성별</legend>
+      <div class="choices">
+        {% for g in genders %}
+        <label><input type="radio" name="gender" value="{{ g }}" {% if loop.first %}checked{% endif %}><span>{{ g }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>발권 유형</legend>
+      <div class="choices">
+        <label><input type="radio" name="issue_type" value="normal" checked><span>정상발권</span></label>
+        <label><input type="radio" name="issue_type" value="waiting"><span>대기발권</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>이용 정보</legend>
+      <div class="fields">
+        <label data-for="member">회원번호<input name="member_id" inputmode="numeric" autocomplete="off"></label>
+        <label data-for="member">회원명<input name="member_name" autocomplete="off"></label>
+        <label data-for="member">이용 시작일<input type="date" name="start_date" value="{{ today }}"></label>
+        <label data-for="member">이용 종료일<input type="date" name="end_date"></label>
+        <label data-for="daily" hidden>이용료(원)<input type="number" name="fee" min="0" step="100" value="2500"></label>
+        <label data-for="normal">락카번호<input type="number" name="locker" min="0"></label>
+        <p data-for="waiting" class="hint" hidden>대기번호는 자동으로 발급됩니다.</p>
+      </div>
+    </fieldset>
+
+    <p id="message" role="status"></p>
+
+    <div class="actions">
+      <button type="button" id="preview-btn" class="secondary">미리보기</button>
+      <button type="submit" id="print-btn">영수증 출력</button>
+    </div>
+  </form>
+
+  <section id="preview" hidden>
+    <h2>미리보기</h2>
+    <img id="preview-img" alt="영수증 미리보기">
+  </section>
+</main>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
