@@ -1,10 +1,12 @@
 """Flask 발권 서버.  실행: python app.py  ->  http://127.0.0.1:5000"""
+import hmac
 import io
 import os
 import re
 from datetime import datetime
+from functools import wraps
 
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, Response, jsonify, render_template, request, send_file
 
 import database as db
 import printer
@@ -12,6 +14,25 @@ from receipt import ENTRY_TYPES, FACILITIES, GENDERS, ISSUE_TYPES, Ticket, rende
 
 app = Flask(__name__)
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+ADMIN_PASSWORD = os.environ.get("TICKET_ADMIN_PASSWORD", "")
+STATUSES = {"ACTIVE": "정상", "WAITING": "대기"}
+
+
+def admin_only(view):
+    """개인정보 화면 보호: 비밀번호가 설정돼 있으면 HTTP 기본 인증(사용자명 무관),
+    없으면 이 PC(localhost)에서 온 요청만 허용."""
+
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if ADMIN_PASSWORD:
+            auth = request.authorization
+            if not (auth and hmac.compare_digest(auth.password or "", ADMIN_PASSWORD)):
+                return Response("관리자 인증이 필요합니다.", 401, {"WWW-Authenticate": 'Basic realm="admin"'})
+        elif request.remote_addr not in ("127.0.0.1", "::1"):
+            return Response("관리 페이지는 발권 PC에서만 열 수 있습니다. (TICKET_ADMIN_PASSWORD 설정 시 원격 허용)", 403)
+        return view(*args, **kwargs)
+
+    return wrapper
 
 
 class InputError(ValueError):
@@ -126,12 +147,36 @@ def preview():
 
 
 @app.get("/api/tickets/<ticket_id>")
+@admin_only
 def ticket_status(ticket_id):
     """QR 스캔 시 발권 상태 조회."""
     row = db.get_ticket(ticket_id)
     if not row:
         return jsonify(ok=False, error="발권 기록이 없습니다."), 404
     return jsonify(ok=True, ticket=row)
+
+
+@app.get("/admin")
+@admin_only
+def admin():
+    view = request.args.get("view", "tickets")
+    today = f"{datetime.now():%Y-%m-%d}"
+    date = request.args.get("date", today)  # 빈 문자열이면 전체 기간
+    if date and not DATE_RE.match(date):
+        date = today
+    facility = request.args.get("facility", "")
+    status = request.args.get("status", "")
+    q = request.args.get("q", "").strip()
+    ctx = dict(
+        view=view, date=date, today=today, facility=facility, status=status, q=q,
+        facilities=list(FACILITIES), statuses=STATUSES, entry_types=ENTRY_TYPES,
+        db_path=db.DB_PATH, summary=db.ticket_summary(date or today),
+    )
+    if view == "members":
+        ctx["members"] = db.list_members(q)
+    else:
+        ctx["tickets"] = db.search_tickets(date, facility, status, q)
+    return render_template("admin.html", **ctx)
 
 
 db.init_db()

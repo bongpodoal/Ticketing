@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>발권 관리</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+<main class="admin">
+  <header class="admin-head">
+    <h1>발권 관리</h1>
+    <nav>
+      <a href="{{ url_for('admin', view='tickets') }}" {% if view != 'members' %}aria-current="page"{% endif %}>발권 기록</a>
+      <a href="{{ url_for('admin', view='members') }}" {% if view == 'members' %}aria-current="page"{% endif %}>회원</a>
+      <a href="{{ url_for('index') }}">발권 화면 →</a>
+    </nav>
+  </header>
+
+  <section class="stats" aria-label="{{ date or today }} 요약">
+    <div><span>{{ (date or today) }} 발권</span><strong>{{ summary.count }}</strong></div>
+    <div><span>정상</span><strong>{{ summary.ACTIVE }}</strong></div>
+    <div><span>대기</span><strong>{{ summary.WAITING }}</strong></div>
+    <div><span>일일 이용료 합계</span><strong>{{ "{:,}".format(summary.fee) }}원</strong></div>
+  </section>
+
+  {% if view == 'members' %}
+  <form class="filters" method="get">
+    <input type="hidden" name="view" value="members">
+    <label>검색<input name="q" value="{{ q }}" placeholder="회원번호 / 이름"></label>
+    <button type="submit">조회</button>
+  </form>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>회원번호</th><th>회원명</th><th>이용기간</th><th>상태</th><th class="num">발권 횟수</th><th>마지막 발권</th></tr>
+      </thead>
+      <tbody>
+      {% for m in members %}
+        <tr>
+          <td><a href="{{ url_for('admin', view='tickets', date='', q=m.member_id) }}">{{ m.member_id }}</a></td>
+          <td>{{ m.name }}</td>
+          <td>{{ m.start_date }} ~ {{ m.end_date }}</td>
+          <td>{% if m.end_date < today %}<span class="badge off">만료</span>{% elif m.start_date > today %}<span class="badge wait">시작 전</span>{% else %}<span class="badge ok">유효</span>{% endif %}</td>
+          <td class="num">{{ m.ticket_count }}</td>
+          <td>{{ m.last_printed or '-' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty">회원 기록이 없습니다.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="foot">{{ members|length }}명</p>
+
+  {% else %}
+  <form class="filters" method="get">
+    <input type="hidden" name="view" value="tickets">
+    <label>날짜<input type="date" name="date" value="{{ date }}"></label>
+    <label>시설
+      <select name="facility">
+        <option value="">전체</option>
+        {% for f in facilities %}<option {% if f == facility %}selected{% endif %}>{{ f }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>상태
+      <select name="status">
+        <option value="">전체</option>
+        {% for k, v in statuses.items() %}<option value="{{ k }}" {% if k == status %}selected{% endif %}>{{ v }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>검색<input name="q" value="{{ q }}" placeholder="발권번호 / 회원번호 / 이름"></label>
+    <button type="submit">조회</button>
+    <a class="plain" href="{{ url_for('admin', view='tickets', date='') }}">전체 기간</a>
+  </form>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>출력일시</th><th>발권번호</th><th>입장</th><th>시설</th><th>성별</th><th class="num">락카/대기</th><th>회원번호</th><th>회원명</th><th class="num">이용료</th><th>상태</th></tr>
+      </thead>
+      <tbody>
+      {% for t in tickets %}
+        <tr>
+          <td>{{ t.printed_at }}</td>
+          <td class="mono">{{ t.ticket_id }}</td>
+          <td>{{ entry_types[t.entry_type] }}</td>
+          <td>{{ t.facility }}</td>
+          <td>{{ t.gender }}</td>
+          <td class="num">{% if t.waiting_no is not none %}대기 {{ t.waiting_no }}{% else %}{{ t.locker }}{% endif %}</td>
+          <td>{{ t.member_id or '-' }}</td>
+          <td>{{ t.member_name or '-' }}</td>
+          <td class="num">{{ "{:,}".format(t.fee) if t.fee is not none else '-' }}</td>
+          <td><span class="badge {{ 'ok' if t.status == 'ACTIVE' else 'wait' }}">{{ statuses.get(t.status, t.status) }}</span></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="10" class="empty">조건에 맞는 발권 기록이 없습니다.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="foot">{{ tickets|length }}건{% if tickets|length >= 500 %} (최근 500건까지만 표시){% endif %}</p>
+  {% endif %}
+
+  <p class="foot">DB: <code>{{ db_path }}</code> · 읽기 전용</p>
+</main>
+</body>
+</html>

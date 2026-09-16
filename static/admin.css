@@ -1,0 +1,75 @@
+main.admin { max-width: 1200px; }
+
+.admin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-bottom: 16px;
+}
+.admin-head h1 { margin: 0; }
+.admin-head nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.admin-head a { color: var(--accent); text-decoration: none; padding: 4px 0; }
+.admin-head a[aria-current="page"] { font-weight: 700; border-bottom: 2px solid var(--accent); }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stats div {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.stats span { display: block; color: var(--muted); font-size: 0.9rem; }
+.stats strong { font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.filters label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+.filters input, .filters select {
+  font: inherit;
+  padding: 8px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+}
+.filters button { flex: 0 0 auto; font-size: 1rem; padding: 9px 20px; border-radius: 6px; }
+.filters .plain { color: var(--accent); padding: 9px 4px; }
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+th, td { padding: 9px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { position: sticky; top: 0; background: #eceef2; font-weight: 700; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: #f7f8fa; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.mono { font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-size: 0.88rem; }
+.empty { text-align: center; color: var(--muted); padding: 32px; }
+td a { color: var(--accent); }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; }
+.badge.ok { background: #e3f1e4; color: var(--ok); }
+.badge.wait { background: #fff1d6; color: #8a5a00; }
+.badge.off { background: #eceef2; color: var(--muted); }
+
+.foot { color: var(--muted); font-size: 0.9rem; margin: 8px 0 0; }
+
+@media (max-width: 640px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}

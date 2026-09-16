@@ -87,3 +87,55 @@ def get_ticket(ticket_id):
             (ticket_id,),
         ).fetchone()
     return dict(row) if row else None
+
+
+def search_tickets(date="", facility="", status="", q="", limit=500):
+    """관리 페이지용 발권 목록 (최신순). 빈 값은 필터 미적용."""
+    where, args = [], []
+    if date:
+        where.append("t.printed_at LIKE ?")
+        args.append(f"{date}%")
+    if facility:
+        where.append("t.facility = ?")
+        args.append(facility)
+    if status:
+        where.append("t.status = ?")
+        args.append(status)
+    if q:
+        where.append("(t.ticket_id LIKE ? OR t.member_id LIKE ? OR m.name LIKE ?)")
+        args += [f"%{q}%"] * 3
+    sql = (
+        "SELECT t.*, m.name AS member_name FROM tickets t LEFT JOIN members m USING (member_id)"
+        + (" WHERE " + " AND ".join(where) if where else "")
+        + " ORDER BY t.printed_at DESC, t.ticket_id DESC LIMIT ?"
+    )
+    with connect() as conn:
+        return [dict(r) for r in conn.execute(sql, (*args, limit))]
+
+
+def ticket_summary(date):
+    """해당 날짜의 전체 / 상태별 발권 수와 일일 이용료 합계."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT status, COUNT(*) AS n, COALESCE(SUM(fee), 0) AS fee FROM tickets "
+            "WHERE printed_at LIKE ? GROUP BY status",
+            (f"{date}%",),
+        ).fetchall()
+    total = {"count": 0, "ACTIVE": 0, "WAITING": 0, "fee": 0}
+    for r in rows:
+        total["count"] += r["n"]
+        total[r["status"]] = total.get(r["status"], 0) + r["n"]
+        total["fee"] += r["fee"]
+    return total
+
+
+def list_members(q=""):
+    """회원 목록 + 마지막 발권 시각, 발권 횟수."""
+    sql = (
+        "SELECT m.*, COUNT(t.ticket_id) AS ticket_count, MAX(t.printed_at) AS last_printed "
+        "FROM members m LEFT JOIN tickets t USING (member_id) "
+        "WHERE m.member_id LIKE ? OR m.name LIKE ? "
+        "GROUP BY m.member_id ORDER BY last_printed DESC"
+    )
+    with connect() as conn:
+        return [dict(r) for r in conn.execute(sql, (f"%{q}%", f"%{q}%"))]
