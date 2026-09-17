@@ -10,7 +10,17 @@ from flask import Flask, jsonify, render_template, request, send_file, session
 import database as db
 import printer
 from admin import bp as admin_bp
-from receipt import ENTRY_TYPES, FACILITIES, GENDERS, ISSUE_TYPES, Ticket, render
+from receipt import (
+    ENTRY_TYPES,
+    FACILITIES,
+    FREE_ALIGNS,
+    FREE_SIZES,
+    GENDERS,
+    ISSUE_TYPES,
+    Ticket,
+    render,
+    render_text,
+)
 
 app = Flask(__name__)
 app.register_blueprint(admin_bp)
@@ -144,6 +154,48 @@ def preview():
     render(t).save(buf, "PNG")
     buf.seek(0)
     return send_file(buf, mimetype="image/png")
+
+
+FREE_MAX_CHARS = 1000
+
+
+def parse_free(f: dict):
+    """/free 입력 검사 -> 영수증 이미지."""
+    text = str(f.get("text", "")).replace("\r\n", "\n").rstrip()
+    size = str(f.get("size", "medium"))
+    align = str(f.get("align", "left"))
+    if not text.strip():
+        raise InputError("출력할 텍스트를 입력하세요.")
+    if len(text) > FREE_MAX_CHARS:
+        raise InputError(f"텍스트는 {FREE_MAX_CHARS}자까지 입력할 수 있습니다.")
+    if size not in FREE_SIZES or align not in FREE_ALIGNS:
+        raise InputError("글자 크기 또는 정렬 값이 올바르지 않습니다.")
+    return render_text(text, size, align)
+
+
+@app.get("/free")
+def free():
+    """테스트용: 원하는 텍스트를 영수증으로 출력 (DB 기록 없음)."""
+    return render_template("free.html")
+
+
+@app.post("/api/free/preview")
+def free_preview():
+    buf = io.BytesIO()
+    parse_free(request.get_json(force=True)).save(buf, "PNG")
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png")
+
+
+@app.post("/api/free/print")
+def free_print():
+    img = parse_free(request.get_json(force=True))
+    try:
+        printer.print_images([img], "free")
+    except Exception as e:  # noqa: BLE001 - 프린터 오류를 화면에 그대로 보여줌
+        app.logger.exception("자유 텍스트 출력 실패")
+        return jsonify(ok=False, error=f"출력 실패: {e}"), 500
+    return jsonify(ok=True)
 
 
 @app.get("/api/tickets/<ticket_id>")

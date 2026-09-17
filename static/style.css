@@ -106,3 +106,16 @@ button:disabled { opacity: 0.5; cursor: wait; }
 @media (max-width: 480px) {
   .fields { grid-template-columns: 1fr; }
 }
+
+/* /free 테스트 페이지 */
+textarea {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 1.1rem;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  resize: vertical;
+}
+.tag { font-size: 0.8rem; color: var(--muted); font-weight: 400; }

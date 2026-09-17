@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>자유 텍스트 출력 (테스트)</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main>
+  <h1>자유 텍스트 출력 <small class="tag">테스트용</small></h1>
+  <p class="hint">입력한 텍스트를 그대로 영수증으로 출력합니다. 발권 기록은 남지 않습니다.</p>
+
+  <form id="free-form" novalidate>
+    <fieldset>
+      <legend>텍스트</legend>
+      <textarea name="text" rows="8" maxlength="1000" placeholder="출력할 내용을 입력하세요" required></textarea>
+      <p class="hint"><span id="count">0</span> / 1000자</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>글자 크기</legend>
+      <div class="choices">
+        <label><input type="radio" name="size" value="small"><span>작게</span></label>
+        <label><input type="radio" name="size" value="medium" checked><span>보통</span></label>
+        <label><input type="radio" name="size" value="large"><span>크게</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>정렬</legend>
+      <div class="choices">
+        <label><input type="radio" name="align" value="left" checked><span>왼쪽</span></label>
+        <label><input type="radio" name="align" value="center"><span>가운데</span></label>
+      </div>
+    </fieldset>
+
+    <p id="message" role="status"></p>
+
+    <div class="actions">
+      <button type="button" id="preview-btn" class="secondary">미리보기</button>
+      <button type="submit" id="print-btn">출력</button>
+    </div>
+  </form>
+
+  <section id="preview" hidden>
+    <h2>미리보기</h2>
+    <img id="preview-img" alt="영수증 미리보기">
+  </section>
+
+  <p class="hint"><a href="{{ url_for('index') }}">발권 화면으로</a></p>
+</main>
+<script src="{{ url_for('static', filename='free.js') }}"></script>
+</body>
+</html>

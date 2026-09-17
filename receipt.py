@@ -122,3 +122,47 @@ def render(t: Ticket) -> Image.Image:
     center(CENTER_NAME, F_ORG, 18)
     d.rectangle((left, PAD, right - 1, y), outline=0, width=BORDER)
     return img.crop((0, 0, WIDTH, y + PAD)).point(lambda v: 0 if v < 128 else 255, "1")
+
+
+FREE_SIZES = {"small": 24, "medium": 36, "large": 52}
+FREE_ALIGNS = ("left", "center")
+
+
+def _wrap(d: ImageDraw.ImageDraw, text: str, f, max_w: int) -> list[str]:
+    """줄바꿈은 그대로 두고, 폭을 넘는 줄은 단어(공백) 단위로, 긴 단어는 글자 단위로 자른다."""
+    lines = []
+    for para in text.split("\n"):
+        line = ""
+        for word in para.split(" "):
+            cand = f"{line} {word}" if line else word
+            if d.textlength(cand, font=f) <= max_w:
+                line = cand
+                continue
+            if line:
+                lines.append(line)
+            line = ""
+            for ch in word:
+                if line and d.textlength(line + ch, font=f) > max_w:
+                    lines.append(line)
+                    line = ""
+                line += ch
+        lines.append(line)
+    return lines
+
+
+def render_text(text: str, size: str = "medium", align: str = "left") -> Image.Image:
+    """테스트용 자유 텍스트 영수증 (/free)."""
+    f = _font("bold" if size == "large" else "regular", FREE_SIZES[size])
+    d = ImageDraw.Draw(Image.new("L", (1, 1)))
+    max_w = WIDTH - PAD * 2
+    lines = _wrap(d, text, f, max_w)
+    ascent, descent = f.getmetrics()
+    line_h = ascent + descent + FREE_SIZES[size] // 4
+    img = Image.new("L", (WIDTH, PAD * 2 + line_h * len(lines)), 255)
+    d = ImageDraw.Draw(img)
+    y = PAD
+    for line in lines:
+        x = PAD if align == "left" else (WIDTH - d.textlength(line, font=f)) / 2
+        d.text((x, y), line, font=f, fill=0)
+        y += line_h
+    return img.point(lambda v: 0 if v < 128 else 255, "1")

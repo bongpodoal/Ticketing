@@ -18,7 +18,7 @@ TICKET_DRY_RUN=1 TICKET_DB=/tmp/t.db .venv/bin/python app.py   # 인쇄 없이 o
 
 - CUPS 큐 이름: `SRP-350III`. BIXOLON 공식 CUPS 드라이버 v1.5.9가 설치돼 있다(PPD `Bixolon/SRP350III_v1.0.7.ppd`).
 - 앱은 드라이버를 거치지 않고 `lp -o raw`로 ESC/POS를 보낸다: `ESC @` → `GS v 0` 래스터 → 급지 → `GS V 66 0` 부분 절단.
-- 인쇄 폭은 512도트(72mm @ 180dpi)다. 한글과 이모지는 PC 폰트(Noto Sans CJK KR, `.ttc`의 index 1)로 이미지를 그려서 출력한다.
+- 인쇄 폭은 512도트(72mm @ 180dpi)다. 한글은 PC 폰트(Noto Sans CJK KR, `.ttc`의 index 1)로 이미지를 그려서 출력한다. 이 폰트에는 이모지가 없어서 이모지는 □로 나온다.
 - 프린터 내장 한글(EUC-KR, `FS &`)이 되는지는 확인하지 못했다. 텍스트 모드로 바꾸기 전에 먼저 실물로 확인할 것.
 - 개발 PC 사용자는 `lp` 그룹이 아니다. `/dev/usb/lp*`에 직접 쓸 수 없으니 CUPS를 통해서만 보낸다.
 - USB가 순간적으로 끊기면 CUPS 큐가 "Unplugged or turned off"로 비활성화된다. 이때는 `cupsenable SRP-350III`로 다시 켠다.
@@ -32,6 +32,7 @@ TICKET_DRY_RUN=1 TICKET_DB=/tmp/t.db .venv/bin/python app.py   # 인쇄 없이 o
 - 회원명은 영수증에 가운데 글자를 가려서 출력한다(`receipt.mask_name`). 관리 페이지에는 실명이 그대로 나온다.
 - 관리 기능은 `admin.py` 블루프린트에 둔다. 새 관리 라우트에는 `@login_required`를 붙이고, POST 폼에는 `csrf_token` hidden 필드를 넣는다(`before_request`에서 검사). 리다이렉트 대상은 `_safe_next()`로 검증한 값만 쓴다.
 - 초기 계정은 `admin`/`admin`이다(`database.DEFAULT_ADMIN`, `admins` 테이블이 비어 있을 때 생성). 초기 비밀번호를 쓰는 동안에는 localhost에서만 관리 페이지가 열린다.
+- `/free`는 테스트용 자유 텍스트 출력 페이지다(`receipt.render_text`, `/api/free/preview`, `/api/free/print`). DB에 기록하지 않고, 1000자 제한이 있다. 발권 화면처럼 로그인 없이 열린다.
 - 시설을 추가할 때는 `receipt.FACILITIES`만 수정하면 된다. 화면 선택지와 입력 검증에 자동으로 반영된다.
 
 ## 진행 상황
